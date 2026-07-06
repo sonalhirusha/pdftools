@@ -1,10 +1,11 @@
-# PDFTools - Production-Ready Online PDF Tools Website
+# PDFTools
 
-A complete, production-ready online PDF tools website built with Next.js 15, React 19, TypeScript, and Tailwind CSS. Includes 30+ PDF tools, authentication, blog, admin panel, and full SEO optimization.
+A complete, production-ready online PDF tools website built with **Next.js 16**, **React 19**, **TypeScript**, **Tailwind CSS v4**, **Prisma 7**, and **PostgreSQL** (Neon). Features 30+ PDF tools, AI chat with PDFs, authentication, blog, admin panel, and full SEO optimization.
 
 ## Features
 
 - **30+ PDF Tools** - Merge, split, compress, convert, edit, and secure PDFs
+- **AI Chat with PDF** - Chat with your documents using Google Gemini AI (free tier)
 - **Authentication** - Email/password, Google OAuth, password reset, email verification
 - **User Dashboard** - File history, tool usage, favorites, downloads, profile management
 - **Admin Panel** - User management, analytics, blog management, settings
@@ -18,29 +19,31 @@ A complete, production-ready online PDF tools website built with Next.js 15, Rea
 
 ## Tech Stack
 
-- **Framework:** Next.js 15 (App Router)
+- **Framework:** Next.js 16 (App Router)
 - **Language:** TypeScript (strict)
-- **Styling:** Tailwind CSS 4
-- **Database:** PostgreSQL + Prisma ORM
-- **Authentication:** JWT + bcryptjs
-- **PDF Processing:** pdf-lib, sharp
+- **Styling:** Tailwind CSS v4
+- **Database:** PostgreSQL (Neon) + Prisma 7 + Neon serverless adapter
+- **Authentication:** JWT + bcryptjs + Google OAuth
+- **AI:** Google Gemini (`gemini-2.0-flash`, free tier)
+- **PDF Processing:** pdf-lib, sharp, exceljs, mammoth
 - **Email:** Nodemailer
-- **Deployment:** Docker, Nginx
+- **Deployment:** Vercel (serverless) / Docker + Nginx (self-hosted)
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 20+
-- PostgreSQL 16+
+- Node.js 22+
+- PostgreSQL 16+ (or Neon cloud database)
 - npm or pnpm
+- Google Gemini API key (free) — [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
 
 ### Installation
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/pdftools.git
-   cd pdftools
+   git clone https://github.com/zeroclothing23/pdf.git
+   cd pdf
    ```
 
 2. Install dependencies:
@@ -51,8 +54,8 @@ A complete, production-ready online PDF tools website built with Next.js 15, Rea
 3. Set up environment variables:
    ```bash
    cp .env.example .env
-   # Edit .env with your configuration
    ```
+   Required vars: `DATABASE_URL`, `JWT_SECRET`, `ENCRYPTION_KEY`, `GEMINI_API_KEY`
 
 4. Set up the database:
    ```bash
