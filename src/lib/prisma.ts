@@ -3,7 +3,7 @@ import { PrismaNeonHttp } from '@prisma/adapter-neon'
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
 
-const connectionString = process.env.DATABASE_URL!
+const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/pdftools'
 const adapter = new PrismaNeonHttp(connectionString, {})
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter })
