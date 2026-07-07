@@ -19,8 +19,8 @@ export function AdUnit() {
       document.body.appendChild(s)
     }
 
-    const bannerScript = document.querySelector('script[src*="highperformanceformat.com/323ecd135b38a26a6d45afd0e33ff4f8"]')
-    if (!bannerScript) {
+    const banner1 = document.querySelector('script[src*="highperformanceformat.com/323ecd135b38a26a6d45afd0e33ff4f8"]')
+    if (!banner1) {
       window.atOptions = {
         key: '323ecd135b38a26a6d45afd0e33ff4f8',
         format: 'iframe',
@@ -32,12 +32,27 @@ export function AdUnit() {
       s.src = 'https://www.highperformanceformat.com/323ecd135b38a26a6d45afd0e33ff4f8/invoke.js'
       document.body.appendChild(s)
     }
+
+    const banner2 = document.querySelector('script[src*="highperformanceformat.com/4a0047c92dec61603ab2d2cc9c33421b"]')
+    if (!banner2) {
+      window.atOptions = {
+        key: '4a0047c92dec61603ab2d2cc9c33421b',
+        format: 'iframe',
+        height: 50,
+        width: 320,
+        params: {},
+      }
+      const s = document.createElement('script')
+      s.src = 'https://www.highperformanceformat.com/4a0047c92dec61603ab2d2cc9c33421b/invoke.js'
+      document.body.appendChild(s)
+    }
   }, [])
 
   return (
     <>
       <div id="container-dbc7e0342c21f0bd0baa4df5c5df10f6" />
       <div id="container-323ecd135b38a26a6d45afd0e33ff4f8" />
+      <div id="container-4a0047c92dec61603ab2d2cc9c33421b" />
     </>
   )
 }
