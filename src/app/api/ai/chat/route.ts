@@ -27,7 +27,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ text })
   } catch (error) {
-    console.error('AI chat error:', error)
-    return NextResponse.json({ error: 'AI processing failed' }, { status: 500 })
+    const msg = error instanceof Error ? error.message : 'Unknown error'
+    console.error('AI chat error:', msg)
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
