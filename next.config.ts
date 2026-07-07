@@ -23,7 +23,7 @@ const nextConfig: NextConfig = {
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://*.googleusercontent.com https://www.google-analytics.com https://*.clarity.ms; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.google-analytics.com https://*.clarity.ms; frame-src 'self' https://www.google.com; object-src 'none'; base-uri 'self'; form-action 'self'",
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.googletagmanager.com https://www.google-analytics.com https://*.effectivecpmnetwork.com https://*.highperformanceformat.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://*.googleusercontent.com https://www.google-analytics.com https://*.clarity.ms https://*.effectivecpmnetwork.com https://*.highperformanceformat.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.google-analytics.com https://*.clarity.ms https://*.effectivecpmnetwork.com https://*.highperformanceformat.com; frame-src 'self' https://www.google.com https://*.effectivecpmnetwork.com https://*.highperformanceformat.com; object-src 'none'; base-uri 'self'; form-action 'self'",
           },
         ],
       },
