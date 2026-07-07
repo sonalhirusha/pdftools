@@ -2,7 +2,7 @@ import { GoogleGenerativeAI, type GenerativeModel } from '@google/generative-ai'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
 
-const MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.0-flash-lite']
+const MODELS = ['gemini-flash-latest', 'gemini-2.0-flash', 'gemini-1.5-flash']
 const API_VERSIONS = ['v1beta', 'v1']
 
 export interface ChatMessage {
