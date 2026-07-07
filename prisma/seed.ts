@@ -1,7 +1,9 @@
 import { PrismaClient, UserRole } from '@prisma/client'
+import { PrismaNeon } from '@prisma/adapter-neon'
 import { hash } from 'bcryptjs'
 
-const prisma = new PrismaClient()
+const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL })
+const prisma = new PrismaClient({ adapter })
 
 async function main() {
   // Create admin user
