@@ -12,11 +12,16 @@ export function Analytics() {
   const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID
 
   useEffect(() => {
+    const adScript = document.createElement('script')
+    adScript.src = 'https://pl30241180.effectivecpmnetwork.com/be/b6/c1/beb6c10bacd295422228e7015129b14e.js'
+    adScript.async = true
+    document.head.appendChild(adScript)
+
     if (!gaId) return
-    const script = document.createElement('script')
-    script.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`
-    script.async = true
-    document.head.appendChild(script)
+    const gaScript = document.createElement('script')
+    gaScript.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`
+    gaScript.async = true
+    document.head.appendChild(gaScript)
     window.dataLayer = window.dataLayer || []
     function gtag(...args: unknown[]) { window.dataLayer.push(args) }
     gtag('js', new Date())
