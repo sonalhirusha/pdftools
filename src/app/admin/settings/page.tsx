@@ -13,9 +13,15 @@ export default function AdminSettingsPage() {
 
   useEffect(() => {
     fetch('/api/admin/settings').then(r => r.json()).then(data => {
-      const s: Record<string, string> = {}
-      data.settings?.forEach((item: { key: string; value: string | boolean | number }) => { s[item.key] = String(item.value) })
-      setSettings(s)
+      if (Array.isArray(data.settings)) {
+        const s: Record<string, string> = {}
+        data.settings.forEach((item: { key: string; value: string | boolean | number }) => { s[item.key] = String(item.value) })
+        setSettings(s)
+      } else if (data.settings && typeof data.settings === 'object') {
+        const s: Record<string, string> = {}
+        Object.entries(data.settings).forEach(([key, value]) => { s[key] = String(value) })
+        setSettings(s)
+      }
     }).catch(console.error).finally(() => setLoading(false))
   }, [])
 
