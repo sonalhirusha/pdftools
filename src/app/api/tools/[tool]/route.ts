@@ -11,7 +11,8 @@ import {
   passwordProtect, removePassword, addPageNumbers, imagesToPDF,
 } from '@/lib/pdf'
 
-const OUTPUT_DIR = path.join(process.env.UPLOAD_DIR || './uploads', 'output')
+const UPLOAD_BASE = process.env.UPLOAD_DIR || (process.env.VERCEL ? '/tmp/uploads' : './uploads')
+const OUTPUT_DIR = path.join(UPLOAD_BASE, 'output')
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ tool: string }> }) {
   const { tool: toolId } = await params

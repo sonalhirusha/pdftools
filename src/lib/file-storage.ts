@@ -3,7 +3,7 @@ import path from 'path'
 import { v4 as uuidv4 } from 'uuid'
 import { getFileExtension } from './utils'
 
-const UPLOAD_DIR = process.env.UPLOAD_DIR || './uploads'
+const UPLOAD_DIR = process.env.UPLOAD_DIR || (process.env.VERCEL ? '/tmp/uploads' : './uploads')
 const AUTO_DELETE_HOURS = parseInt(process.env.AUTO_DELETE_HOURS || '24')
 
 export interface StoredFile {
