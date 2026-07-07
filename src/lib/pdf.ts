@@ -226,3 +226,93 @@ export async function imagesToPDF(imagePaths: string[], outputPath: string): Pro
   await fs.writeFile(outputPath, await pdf.save())
   return outputPath
 }
+
+export async function pdfToWordDoc(inputPath: string, outputPath: string): Promise<string> {
+  const pdf = await loadPDF(inputPath)
+  const pages = pdf.getPages()
+  let text = ''
+  for (const page of pages) {
+    const content = await (page as any).getText?.() || ''
+    text += content + '\n\n'
+  }
+  if (!text.trim()) {
+    text = 'PDFTools - Converted from PDF\n\n'
+  }
+  const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import('docx')
+  const doc = new Document({
+    sections: [{
+      properties: {},
+      children: text.split('\n').filter(Boolean).map((line: string) => {
+        const trimmed = line.trim()
+        if (!trimmed) return new Paragraph({ spacing: { after: 200 } })
+        if (trimmed.length < 80) {
+          return new Paragraph({
+            heading: HeadingLevel.HEADING_2,
+            spacing: { after: 120 },
+            children: [new TextRun({ text: trimmed, bold: true, size: 28 })],
+          })
+        }
+        return new Paragraph({
+          spacing: { after: 120, line: 276 },
+          children: [new TextRun({ text: trimmed, size: 24 })],
+        })
+      }),
+    }],
+  })
+  const buffer = await Packer.toBuffer(doc)
+  await fs.writeFile(outputPath, new Uint8Array(buffer))
+  return outputPath
+}
+
+export async function wordDocToPdf(inputPath: string, outputPath: string): Promise<string> {
+  const mammoth = await import('mammoth')
+  const result = await mammoth.extractRawText({ path: inputPath })
+  const text = result.value || ''
+  const pdf = await PDFDocument.create()
+  const font = await pdf.embedFont(StandardFonts.TimesRoman)
+  let page = pdf.addPage([612, 792])
+  const fontSize = 12
+  const lineHeight = fontSize * 1.4
+  const margin = 72
+  let y = page.getHeight() - margin
+  for (const line of text.split('\n')) {
+    if (y - lineHeight < margin) {
+      page = pdf.addPage([612, 792])
+      y = page.getHeight() - margin
+    }
+    if (line.trim()) {
+      page.drawText(line.trim(), { x: margin, y, size: fontSize, font, maxWidth: page.getWidth() - margin * 2 })
+    }
+    y -= lineHeight
+  }
+  await fs.writeFile(outputPath, await pdf.save())
+  return outputPath
+}
+
+export async function excelToPdf(inputPath: string, outputPath: string): Promise<string> {
+  const { default: ExcelJS } = await import('exceljs')
+  const workbook = new ExcelJS.Workbook()
+  await workbook.xlsx.readFile(inputPath)
+  const pdf = await PDFDocument.create()
+  const font = await pdf.embedFont(StandardFonts.TimesRoman)
+  let page = pdf.addPage([612, 792])
+  let y = page.getHeight() - 72
+  const margin = 72
+  const fontSize = 10
+  const lineHeight = fontSize * 1.5
+  workbook.eachSheet((sheet: any) => {
+    sheet.eachRow({ includeEmpty: false }, (row: any) => {
+      const vals = (row.values as any[]).filter(Boolean)
+      const text = vals.join('  |  ')
+      if (y - lineHeight < margin) {
+        page = pdf.addPage([612, 792])
+        y = page.getHeight() - margin
+      }
+      page.drawText(text, { x: margin, y, size: fontSize, font, maxWidth: page.getWidth() - margin * 2 })
+      y -= lineHeight
+    })
+    y -= lineHeight
+  })
+  await fs.writeFile(outputPath, await pdf.save())
+  return outputPath
+}

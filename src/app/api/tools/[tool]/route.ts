@@ -9,6 +9,7 @@ import { storeFile, ensureUploadDir } from '@/lib/file-storage'
 import {
   mergePDFs, splitPDF, compressPDF, addWatermark,
   passwordProtect, removePassword, addPageNumbers, imagesToPDF,
+  pdfToWordDoc, wordDocToPdf, excelToPdf,
 } from '@/lib/pdf'
 
 const UPLOAD_BASE = process.env.UPLOAD_DIR || (process.env.VERCEL ? '/tmp/uploads' : './uploads')
@@ -58,6 +59,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       case 'unlock': case 'remove-password': resultPath = await removePassword(inputPaths[0], outputPath, ''); break
       case 'number-pages': resultPath = await addPageNumbers(inputPaths[0], outputPath); break
       case 'jpg-to-pdf': case 'png-to-pdf': resultPath = await imagesToPDF(inputPaths, outputPath); break
+      case 'pdf-to-word': resultPath = await pdfToWordDoc(inputPaths[0], outputPath.replace('.pdf', '.docx')); break
+      case 'word-to-pdf': resultPath = await wordDocToPdf(inputPaths[0], outputPath); break
+      case 'pdf-to-excel': resultPath = await pdfToWordDoc(inputPaths[0], outputPath.replace('.pdf', '.xlsx')); break
+      case 'excel-to-pdf': resultPath = await excelToPdf(inputPaths[0], outputPath); break
       default: resultPath = await compressPDF(inputPaths[0], outputPath)
     }
 
@@ -68,9 +73,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       },
     })
 
+    const ext = path.extname(resultPath).toLowerCase()
+    const mimeMap: Record<string, string> = {
+      '.pdf': 'application/pdf',
+      '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    }
+    const contentType = mimeMap[ext] || 'application/octet-stream'
     const resultContent = await fs.readFile(resultPath)
     return new NextResponse(resultContent, {
-      headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="${outputFileName}"` },
+      headers: { 'Content-Type': contentType, 'Content-Disposition': `attachment; filename="output${ext}"` },
     })
   } catch (error) {
     console.error(`Tool ${toolId} error:`, error)
