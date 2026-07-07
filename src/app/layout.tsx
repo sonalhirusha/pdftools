@@ -1,12 +1,12 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import Script from 'next/script'
 import './globals.css'
 import { Providers } from '@/components/layout/Providers'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { CookieConsent } from '@/components/layout/CookieConsent'
 import { Analytics } from '@/components/layout/Analytics'
-import { AdUnit } from '@/components/layout/AdUnit'
 
 const inter = Inter({ subsets: ['latin'], display: 'swap', variable: '--font-inter' })
 
@@ -63,7 +63,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Footer />
           <CookieConsent />
           <Analytics />
-          <AdUnit />
+          <div id="container-dbc7e0342c21f0bd0baa4df5c5df10f6" />
+          <Script src="https://pl30241180.effectivecpmnetwork.com/be/b6/c1/beb6c10bacd295422228e7015129b14e.js" strategy="afterInteractive" />
+          <Script src="https://pl30241182.effectivecpmnetwork.com/dc/6d/ca/dc6dca26e73c51823850fab290f2b0c1.js" strategy="afterInteractive" />
+          <Script src="https://www.effectivecpmnetwork.com/iubme16h3v?key=a190b566f3e6a174dff077c12f5d3e57" strategy="afterInteractive" />
+          <Script src="https://pl30241181.effectivecpmnetwork.com/dbc7e0342c21f0bd0baa4df5c5df10f6/invoke.js" strategy="afterInteractive" />
+          <div style={{display:'flex',flexWrap:'wrap',gap:4,justifyContent:'center'}}>
+            <iframe srcDoc={`<script>window.atOptions={key:'323ecd135b38a26a6d45afd0e33ff4f8',format:'iframe',height:60,width:468,params:{}};</script><script src="https://www.highperformanceformat.com/323ecd135b38a26a6d45afd0e33ff4f8/invoke.js"></script>`} style={{border:0,width:468,height:60,overflow:'hidden'}} title="ad" scrolling="no" loading="lazy" sandbox="allow-scripts allow-same-origin allow-popups" />
+            <iframe srcDoc={`<script>window.atOptions={key:'4a0047c92dec61603ab2d2cc9c33421b',format:'iframe',height:50,width:320,params:{}};</script><script src="https://www.highperformanceformat.com/4a0047c92dec61603ab2d2cc9c33421b/invoke.js"></script>`} style={{border:0,width:320,height:50,overflow:'hidden'}} title="ad" scrolling="no" loading="lazy" sandbox="allow-scripts allow-same-origin allow-popups" />
+            <iframe srcDoc={`<script>window.atOptions={key:'a9851240d7f5b9c61416b6452eabc9d1',format:'iframe',height:300,width:160,params:{}};</script><script src="https://www.highperformanceformat.com/a9851240d7f5b9c61416b6452eabc9d1/invoke.js"></script>`} style={{border:0,width:160,height:300,overflow:'hidden'}} title="ad" scrolling="no" loading="lazy" sandbox="allow-scripts allow-same-origin allow-popups" />
+          </div>
         </Providers>
       </body>
     </html>
