@@ -59,9 +59,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       case 'unlock': case 'remove-password': resultPath = await removePassword(inputPaths[0], outputPath, ''); break
       case 'number-pages': resultPath = await addPageNumbers(inputPaths[0], outputPath); break
       case 'jpg-to-pdf': case 'png-to-pdf': resultPath = await imagesToPDF(inputPaths, outputPath); break
-      case 'pdf-to-word': resultPath = await pdfToWordDoc(inputPaths[0], outputPath.replace('.pdf', '.docx')); break
+      case 'pdf-to-word': {
+        const wordPath = path.join(OUTPUT_DIR, `${uuidv4()}-${toolId}-output.docx`)
+        resultPath = await pdfToWordDoc(inputPaths[0], wordPath); break
+      }
       case 'word-to-pdf': resultPath = await wordDocToPdf(inputPaths[0], outputPath); break
-      case 'pdf-to-excel': resultPath = await pdfToWordDoc(inputPaths[0], outputPath.replace('.pdf', '.xlsx')); break
       case 'excel-to-pdf': resultPath = await excelToPdf(inputPaths[0], outputPath); break
       default: resultPath = await compressPDF(inputPaths[0], outputPath)
     }

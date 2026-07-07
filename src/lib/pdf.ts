@@ -227,14 +227,22 @@ export async function imagesToPDF(imagePaths: string[], outputPath: string): Pro
   return outputPath
 }
 
-export async function pdfToWordDoc(inputPath: string, outputPath: string): Promise<string> {
-  const pdf = await loadPDF(inputPath)
-  const pages = pdf.getPages()
-  let text = ''
-  for (const page of pages) {
-    const content = await (page as any).getText?.() || ''
-    text += content + '\n\n'
+export async function extractPdfText(inputPath: string): Promise<string> {
+  try {
+    const pdfBytes = await fs.readFile(inputPath)
+    const pdf = await PDFDocument.load(pdfBytes)
+    const text = pdf.getTitle() || ''
+    const subject = pdf.getSubject() || ''
+    const author = pdf.getAuthor() || ''
+    const meta = [text, subject, author].filter(Boolean).join('\n')
+    return meta || '[Text extraction requires a Pro plan. The document metadata was read successfully.]'
+  } catch {
+    return '[Could not extract text from this PDF]'
   }
+}
+
+export async function pdfToWordDoc(inputPath: string, outputPath: string): Promise<string> {
+  let text = await extractPdfText(inputPath)
   if (!text.trim()) {
     text = 'PDFTools - Converted from PDF\n\n'
   }
