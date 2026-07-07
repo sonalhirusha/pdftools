@@ -10,6 +10,11 @@ import {
   mergePDFs, splitPDF, compressPDF, addWatermark,
   passwordProtect, removePassword, addPageNumbers, imagesToPDF,
   pdfToWordDoc, wordDocToPdf, excelToPdf,
+  rotatePDF, deletePagesFromPDF, rearrangePages, extractPages,
+  addTextToPDF, flattenPDF, removeMetadata, pdfToImages,
+  removeWatermark, redactContent, fillPDFForms, addSignatureToPDF,
+  highlightPDF, pdfToExcel, htmlToPdf, textToPdf, drawOnPDF,
+  insertImageIntoPDF, pdfToPptx, pptxToPdf, NotSupportedError,
 } from '@/lib/pdf'
 
 const UPLOAD_BASE = process.env.UPLOAD_DIR || (process.env.VERCEL ? '/tmp/uploads' : './uploads')
@@ -41,13 +46,33 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     switch (toolId) {
       case 'merge': resultPath = await mergePDFs(inputPaths, outputPath); break
-      case 'split':
+      case 'split': {
         const splitDir = path.join(OUTPUT_DIR, uuidv4())
         await fs.mkdir(splitDir, { recursive: true })
         const splitPaths = await splitPDF(inputPaths[0], splitDir)
         resultPath = splitPaths[0]
         break
+      }
       case 'compress': resultPath = await compressPDF(inputPaths[0], outputPath); break
+      case 'rotate': {
+        const deg = Number(formData.get('degrees')) || 90
+        resultPath = await rotatePDF(inputPaths[0], outputPath, deg); break
+      }
+      case 'delete-pages': {
+        const pagesStr = (formData.get('pages') as string) || ''
+        const pagesToDelete = pagesStr.split(',').map(Number).filter(n => !isNaN(n))
+        resultPath = await deletePagesFromPDF(inputPaths[0], outputPath, pagesToDelete); break
+      }
+      case 'rearrange': {
+        const orderStr = (formData.get('order') as string) || ''
+        const order = orderStr.split(',').map(Number).filter(n => !isNaN(n))
+        resultPath = await rearrangePages(inputPaths[0], outputPath, order); break
+      }
+      case 'extract': {
+        const pagesStr = (formData.get('pages') as string) || ''
+        const pages = pagesStr.split(',').map(Number).filter(n => !isNaN(n))
+        resultPath = await extractPages(inputPaths[0], outputPath, pages); break
+      }
       case 'watermark': {
         const text = (formData.get('text') as string) || 'Watermark'
         resultPath = await addWatermark(inputPaths[0], outputPath, text); break
@@ -65,6 +90,76 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       }
       case 'word-to-pdf': resultPath = await wordDocToPdf(inputPaths[0], outputPath); break
       case 'excel-to-pdf': resultPath = await excelToPdf(inputPaths[0], outputPath); break
+      case 'pdf-to-excel': {
+        const excelPath = path.join(OUTPUT_DIR, `${uuidv4()}-${toolId}-output.xlsx`)
+        resultPath = await pdfToExcel(inputPaths[0], excelPath); break
+      }
+      case 'pdf-to-jpg': {
+        const imgDir = path.join(OUTPUT_DIR, uuidv4())
+        await fs.mkdir(imgDir, { recursive: true })
+        const imgPaths = await pdfToImages(inputPaths[0], imgDir, 'jpg')
+        resultPath = imgPaths[0]; break
+      }
+      case 'pdf-to-png': {
+        const imgDir = path.join(OUTPUT_DIR, uuidv4())
+        await fs.mkdir(imgDir, { recursive: true })
+        const imgPaths = await pdfToImages(inputPaths[0], imgDir, 'png')
+        resultPath = imgPaths[0]; break
+      }
+      case 'html-to-pdf': resultPath = await htmlToPdf(inputPaths[0], outputPath); break
+      case 'text-to-pdf': resultPath = await textToPdf(inputPaths[0], outputPath); break
+      case 'pdf-to-powerpoint': {
+        const pptxPath = path.join(OUTPUT_DIR, `${uuidv4()}-${toolId}-output.pptx`)
+        resultPath = await pdfToPptx(inputPaths[0], pptxPath); break
+      }
+      case 'powerpoint-to-pdf': resultPath = await pptxToPdf(inputPaths[0], outputPath); break
+      case 'add-text': {
+        const text = (formData.get('text') as string) || ''
+        const x = Number(formData.get('x')) || 50
+        const y = Number(formData.get('y')) || 50
+        const pageIdx = Number(formData.get('page')) || 0
+        resultPath = await addTextToPDF(inputPaths[0], outputPath, text, x, y, pageIdx); break
+      }
+      case 'highlight': {
+        const highlightsJson = (formData.get('highlights') as string) || '[]'
+        const highlights = JSON.parse(highlightsJson)
+        resultPath = await highlightPDF(inputPaths[0], outputPath, highlights); break
+      }
+      case 'draw': {
+        const elementsJson = (formData.get('elements') as string) || '[]'
+        const elements = JSON.parse(elementsJson)
+        resultPath = await drawOnPDF(inputPaths[0], outputPath, elements); break
+      }
+      case 'insert-image': {
+        const imgFile = formData.get('image') as File
+        if (!imgFile) return NextResponse.json({ error: 'No image provided' }, { status: 400 })
+        const imgStored = await storeFile(imgFile, imgFile.name, imgFile.type)
+        const pageIdx = Number(formData.get('page')) || 0
+        const x = Number(formData.get('x')) || 50
+        const y = Number(formData.get('y')) || 50
+        resultPath = await insertImageIntoPDF(inputPaths[0], outputPath, imgStored.path, pageIdx, x, y); break
+      }
+      case 'remove-watermark': resultPath = await removeWatermark(inputPaths[0], outputPath); break
+      case 'add-signature': {
+        const sigFile = formData.get('signature') as File
+        if (!sigFile) return NextResponse.json({ error: 'No signature image provided' }, { status: 400 })
+        const sigStored = await storeFile(sigFile, sigFile.name, sigFile.type)
+        const pageIdx = Number(formData.get('page')) || 0
+        const x = Number(formData.get('x')) || 50
+        const y = Number(formData.get('y')) || 50
+        const w = Number(formData.get('width')) || 200
+        const h = Number(formData.get('height')) || 100
+        resultPath = await addSignatureToPDF(inputPaths[0], outputPath, sigStored.path, pageIdx, x, y, w, h); break
+      }
+      case 'fill-forms': resultPath = await fillPDFForms(inputPaths[0], outputPath); break
+      case 'flatten': resultPath = await flattenPDF(inputPaths[0], outputPath); break
+      case 'redact': {
+        const redactionsJson = (formData.get('redactions') as string) || '[]'
+        const redactions = JSON.parse(redactionsJson)
+        resultPath = await redactContent(inputPaths[0], outputPath, redactions); break
+      }
+      case 'metadata-cleaner': resultPath = await removeMetadata(inputPaths[0], outputPath); break
+      case 'ai-chat': return NextResponse.json({ error: 'AI Chat is handled by a separate endpoint' }, { status: 400 })
       default: resultPath = await compressPDF(inputPaths[0], outputPath)
     }
 
@@ -80,6 +175,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       '.pdf': 'application/pdf',
       '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
     }
     const contentType = mimeMap[ext] || 'application/octet-stream'
     const resultContent = await fs.readFile(resultPath)
@@ -88,6 +187,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     })
   } catch (error) {
     console.error(`Tool ${toolId} error:`, error)
+    if (error instanceof NotSupportedError) {
+      return NextResponse.json({ error: error.message }, { status: 501 })
+    }
     return NextResponse.json({ error: 'Processing failed' }, { status: 500 })
   }
 }

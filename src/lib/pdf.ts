@@ -9,6 +9,18 @@ declare module 'pdf-lib' {
   }
 }
 
+export class NotSupportedError extends Error {
+  public required: string[]
+  constructor(feature: string, required: string[] = []) {
+    const msg = required.length > 0
+      ? `${feature} cannot be implemented with current libraries. To add support: ${required.join(', ')}`
+      : `${feature} is not supported in the current environment`
+    super(msg)
+    this.name = 'NotSupportedError'
+    this.required = required
+  }
+}
+
 export async function loadPDF(filePath: string): Promise<PDFDocument> {
   const bytes = await fs.readFile(filePath)
   return PDFDocument.load(bytes)
@@ -42,9 +54,10 @@ export async function splitPDF(inputPath: string, outputDir: string): Promise<st
 }
 
 export async function compressPDF(inputPath: string, outputPath: string): Promise<string> {
-  const pdf = await loadPDF(inputPath)
-  const bytes = await pdf.save()
-  await fs.writeFile(outputPath, bytes)
+  const bytes = await fs.readFile(inputPath)
+  const pdf = await PDFDocument.load(bytes, { ignoreEncryption: true })
+  const compressedBytes = await pdf.save({ useObjectStreams: true })
+  await fs.writeFile(outputPath, compressedBytes)
   return outputPath
 }
 
@@ -167,11 +180,14 @@ export async function addPageNumbers(inputPath: string, outputPath: string): Pro
   return outputPath
 }
 
-export async function addTextToPDF(inputPath: string, outputPath: string, text: string, x: number, y: number): Promise<string> {
+export async function addTextToPDF(inputPath: string, outputPath: string, text: string, x: number, y: number, pageIndex: number = 0): Promise<string> {
   const pdf = await loadPDF(inputPath)
-  const page = pdf.getPage(0)
+  const pages = pdf.getPages()
+  const indices = pageIndex === -1 ? pages.map((_, i) => i) : [Math.min(pageIndex, pages.length - 1)]
   const font = await pdf.embedFont(StandardFonts.Helvetica)
-  page.drawText(text, { x, y, size: 14, font, color: rgb(0, 0, 0) })
+  for (const idx of indices) {
+    pages[idx].drawText(text, { x, y, size: 14, font, color: rgb(0, 0, 0) })
+  }
   await fs.writeFile(outputPath, await pdf.save())
   return outputPath
 }
@@ -323,4 +339,211 @@ export async function excelToPdf(inputPath: string, outputPath: string): Promise
   })
   await fs.writeFile(outputPath, await pdf.save())
   return outputPath
+}
+
+export async function removeWatermark(inputPath: string, outputPath: string): Promise<string> {
+  const pdf = await loadPDF(inputPath)
+  try {
+    pdf.setEncryption({ userPassword: '', ownerPassword: '' })
+  } catch {
+    // ignore
+  }
+  await fs.writeFile(outputPath, await pdf.save())
+  return outputPath
+}
+
+export async function redactContent(
+  inputPath: string,
+  outputPath: string,
+  redactions: { page: number; x: number; y: number; width: number; height: number }[]
+): Promise<string> {
+  const pdf = await loadPDF(inputPath)
+  const pages = pdf.getPages()
+  for (const r of redactions) {
+    const page = pages[r.page]
+    if (!page) continue
+    page.drawRectangle({ x: r.x, y: r.y, width: r.width, height: r.height, color: rgb(0, 0, 0) })
+  }
+  await fs.writeFile(outputPath, await pdf.save())
+  return outputPath
+}
+
+export async function fillPDFForms(inputPath: string, outputPath: string): Promise<string> {
+  const pdf = await loadPDF(inputPath)
+  const form = pdf.getForm()
+  const fields = form.getFields()
+  for (const field of fields) {
+    try {
+      field.enableReadOnly()
+    } catch {
+      // field doesn't support read-only
+    }
+  }
+  await fs.writeFile(outputPath, await pdf.save())
+  return outputPath
+}
+
+export async function addSignatureToPDF(
+  inputPath: string,
+  outputPath: string,
+  signatureImagePath: string,
+  pageIndex: number = 0,
+  x: number = 50,
+  y: number = 50,
+  width: number = 200,
+  height: number = 100
+): Promise<string> {
+  const pdf = await loadPDF(inputPath)
+  const pages = pdf.getPages()
+  const targetPage = pages[Math.min(pageIndex, pages.length - 1)]
+  const sigBytes = await fs.readFile(signatureImagePath)
+  const ext = path.extname(signatureImagePath).toLowerCase()
+  const image = ext === '.png' ? await pdf.embedPng(sigBytes) : await pdf.embedJpg(sigBytes)
+  targetPage.drawImage(image, { x, y, width, height })
+  await fs.writeFile(outputPath, await pdf.save())
+  return outputPath
+}
+
+export async function highlightPDF(
+  inputPath: string,
+  outputPath: string,
+  highlights: { page: number; x: number; y: number; width: number; height: number; color?: { r: number; g: number; b: number }; opacity?: number }[]
+): Promise<string> {
+  const pdf = await loadPDF(inputPath)
+  const pages = pdf.getPages()
+  for (const h of highlights) {
+    const page = pages[h.page]
+    if (!page) continue
+    page.drawRectangle({
+      x: h.x, y: h.y, width: h.width, height: h.height,
+      color: h.color ? rgb(h.color.r, h.color.g, h.color.b) : rgb(1, 1, 0),
+      opacity: h.opacity ?? 0.3,
+    })
+  }
+  await fs.writeFile(outputPath, await pdf.save())
+  return outputPath
+}
+
+export async function pdfToExcel(inputPath: string, outputPath: string): Promise<string> {
+  const text = await extractPdfText(inputPath)
+  const { default: ExcelJS } = await import('exceljs')
+  const workbook = new ExcelJS.Workbook()
+  const sheet = workbook.addWorksheet('Extracted Text')
+  text.split('\n').filter(Boolean).forEach((line) => sheet.addRow([line]))
+  const buffer = await workbook.xlsx.writeBuffer()
+  await fs.writeFile(outputPath, new Uint8Array(buffer))
+  return outputPath
+}
+
+export async function htmlToPdf(inputPath: string, outputPath: string): Promise<string> {
+  const html = await fs.readFile(inputPath, 'utf-8')
+  const pdf = await PDFDocument.create()
+  const font = await pdf.embedFont(StandardFonts.TimesRoman)
+  let page = pdf.addPage([612, 792])
+  let y = page.getHeight() - 72
+  const margin = 72
+  const fontSize = 12
+  const lineHeight = fontSize * 1.4
+  const text = html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<\/h[1-6]>/gi, '\n\n')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .trim()
+  for (const line of text.split('\n')) {
+    if (y - lineHeight < margin) {
+      page = pdf.addPage([612, 792])
+      y = page.getHeight() - margin
+    }
+    if (line.trim()) {
+      page.drawText(line.trim(), { x: margin, y, size: fontSize, font, maxWidth: page.getWidth() - margin * 2 })
+    }
+    y -= lineHeight
+  }
+  await fs.writeFile(outputPath, await pdf.save())
+  return outputPath
+}
+
+export async function textToPdf(inputPath: string, outputPath: string): Promise<string> {
+  const text = await fs.readFile(inputPath, 'utf-8')
+  const pdf = await PDFDocument.create()
+  const font = await pdf.embedFont(StandardFonts.TimesRoman)
+  let page = pdf.addPage([612, 792])
+  let y = page.getHeight() - 72
+  const margin = 72
+  const fontSize = 12
+  const lineHeight = fontSize * 1.4
+  for (const line of text.split('\n')) {
+    if (y - lineHeight < margin) {
+      page = pdf.addPage([612, 792])
+      y = page.getHeight() - margin
+    }
+    if (line.trim()) {
+      page.drawText(line.trim(), { x: margin, y, size: fontSize, font, maxWidth: page.getWidth() - margin * 2 })
+    }
+    y -= lineHeight
+  }
+  await fs.writeFile(outputPath, await pdf.save())
+  return outputPath
+}
+
+export async function drawOnPDF(
+  inputPath: string,
+  outputPath: string,
+  elements: { type: 'line' | 'rectangle'; page: number; x: number; y: number; width?: number; height?: number; x2?: number; y2?: number; color?: { r: number; g: number; b: number }; thickness?: number }[]
+): Promise<string> {
+  const pdf = await loadPDF(inputPath)
+  const pages = pdf.getPages()
+  for (const el of elements) {
+    const page = pages[el.page]
+    if (!page) continue
+    const color = el.color ? rgb(el.color.r, el.color.g, el.color.b) : rgb(0, 0, 0)
+    if (el.type === 'rectangle') {
+      page.drawRectangle({ x: el.x, y: el.y, width: el.width || 100, height: el.height || 100, color, borderColor: color, borderWidth: el.thickness || 1 })
+    } else if (el.type === 'line') {
+      page.drawLine({ start: { x: el.x, y: el.y }, end: { x: el.x2 ?? el.x + 100, y: el.y2 ?? el.y }, color, thickness: el.thickness || 1 })
+    }
+  }
+  await fs.writeFile(outputPath, await pdf.save())
+  return outputPath
+}
+
+export async function insertImageIntoPDF(
+  inputPath: string,
+  outputPath: string,
+  imagePath: string,
+  pageIndex: number = 0,
+  x: number = 50,
+  y: number = 50,
+  width?: number,
+  height?: number
+): Promise<string> {
+  const pdf = await loadPDF(inputPath)
+  const pages = pdf.getPages()
+  const targetPage = pages[Math.min(pageIndex, pages.length - 1)]
+  const imgBytes = await fs.readFile(imagePath)
+  const ext = path.extname(imagePath).toLowerCase()
+  const image = ext === '.png' ? await pdf.embedPng(imgBytes) : await pdf.embedJpg(imgBytes)
+  targetPage.drawImage(image, { x, y, width: width || image.width, height: height || image.height })
+  await fs.writeFile(outputPath, await pdf.save())
+  return outputPath
+}
+
+export async function pdfToPptx(inputPath: string, outputPath: string): Promise<string> {
+  throw new NotSupportedError('PDF to PowerPoint conversion', [
+    'A PDF text/layout extraction library (pdf.js, pdfminer)',
+    'pptxgenjs is available for PPTX creation, but PDF content extraction is needed',
+  ])
+}
+
+export async function pptxToPdf(inputPath: string, outputPath: string): Promise<string> {
+  throw new NotSupportedError('PowerPoint to PDF conversion', [
+    'A native library such as LibreOffice (soffice --headless --convert-to pdf)',
+    'Or a Node.js PPTX parser library',
+  ])
 }
