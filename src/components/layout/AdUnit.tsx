@@ -2,16 +2,15 @@
 
 import { useEffect } from 'react'
 
-declare global {
-  interface Window {
-    atOptions?: { key: string; format: string; height: number; width: number; params: Record<string, unknown> }
-  }
-}
+const bannerAds = [
+  { key: '323ecd135b38a26a6d45afd0e33ff4f8', height: 60, width: 468 },
+  { key: '4a0047c92dec61603ab2d2cc9c33421b', height: 50, width: 320 },
+  { key: 'a9851240d7f5b9c61416b6452eabc9d1', height: 300, width: 160 },
+]
 
 export function AdUnit() {
   useEffect(() => {
-    const cpmScript = document.querySelector('script[src*="effectivecpmnetwork.com/dbc7e0342"]')
-    if (!cpmScript) {
+    if (!document.querySelector('script[src*="effectivecpmnetwork.com/dbc7e0342"]')) {
       const s = document.createElement('script')
       s.src = 'https://pl30241181.effectivecpmnetwork.com/dbc7e0342c21f0bd0baa4df5c5df10f6/invoke.js'
       s.async = true
@@ -19,40 +18,22 @@ export function AdUnit() {
       document.body.appendChild(s)
     }
 
-    const banner1 = document.querySelector('script[src*="highperformanceformat.com/323ecd135b38a26a6d45afd0e33ff4f8"]')
-    if (!banner1) {
-      window.atOptions = {
-        key: '323ecd135b38a26a6d45afd0e33ff4f8',
-        format: 'iframe',
-        height: 60,
-        width: 468,
-        params: {},
-      }
-      const s = document.createElement('script')
-      s.src = 'https://www.highperformanceformat.com/323ecd135b38a26a6d45afd0e33ff4f8/invoke.js'
-      document.body.appendChild(s)
-    }
-
-    const banner2 = document.querySelector('script[src*="highperformanceformat.com/4a0047c92dec61603ab2d2cc9c33421b"]')
-    if (!banner2) {
-      window.atOptions = {
-        key: '4a0047c92dec61603ab2d2cc9c33421b',
-        format: 'iframe',
-        height: 50,
-        width: 320,
-        params: {},
-      }
-      const s = document.createElement('script')
-      s.src = 'https://www.highperformanceformat.com/4a0047c92dec61603ab2d2cc9c33421b/invoke.js'
-      document.body.appendChild(s)
-    }
+    bannerAds.forEach(ad => {
+      if (document.querySelector(`script[src*="highperformanceformat.com/${ad.key}"]`)) return
+      const config = document.createElement('script')
+      config.textContent = `window.atOptions=${JSON.stringify({ key: ad.key, format: 'iframe', height: ad.height, width: ad.width, params: {} })};`
+      document.body.appendChild(config)
+      const invoke = document.createElement('script')
+      invoke.src = `https://www.highperformanceformat.com/${ad.key}/invoke.js`
+      invoke.async = false
+      document.body.appendChild(invoke)
+    })
   }, [])
 
   return (
     <>
       <div id="container-dbc7e0342c21f0bd0baa4df5c5df10f6" />
-      <div id="container-323ecd135b38a26a6d45afd0e33ff4f8" />
-      <div id="container-4a0047c92dec61603ab2d2cc9c33421b" />
+      {bannerAds.map(ad => <div key={ad.key} id={`container-${ad.key}`} />)}
     </>
   )
 }
