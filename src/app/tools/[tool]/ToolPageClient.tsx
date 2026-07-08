@@ -18,10 +18,13 @@ export function ToolPageClient({ tool }: ToolPageClientProps) {
   const [error, setError] = useState('')
   const [progress, setProgress] = useState(0)
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
+  const onDrop = useCallback((acceptedFiles: File[], rejected: { file: File; errors: { message: string }[] }[]) => {
     setFiles((prev) => [...prev, ...acceptedFiles].slice(0, 10))
     setCompleted(false)
     setError('')
+    if (rejected.length > 0) {
+      setError(rejected[0].errors[0]?.message || 'File rejected')
+    }
   }, [])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, maxSize: 500 * 1024 * 1024 })
@@ -47,8 +50,13 @@ export function ToolPageClient({ tool }: ToolPageClientProps) {
       })
 
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Processing failed')
+        const text = await res.text()
+        try {
+          const data = JSON.parse(text)
+          throw new Error(data.error || `Server error (${res.status})`)
+        } catch {
+          throw new Error(text.trim() || `Server error (${res.status})`)
+        }
       }
 
       const blob = await res.blob()
