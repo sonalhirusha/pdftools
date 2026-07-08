@@ -1,13 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
 import path from 'path'
 import fs from 'fs/promises'
+import { createWriteStream } from 'fs'
 import { v4 as uuidv4 } from 'uuid'
+import archiver from 'archiver'
+
+export const maxDuration = 120
+
+async function createZip(filePaths: string[], outputZip: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const output = createWriteStream(outputZip)
+    const archive = archiver('zip', { zlib: { level: 9 } })
+    output.on('close', () => resolve(outputZip))
+    archive.on('error', reject)
+    archive.pipe(output)
+    for (const fp of filePaths) {
+      archive.file(fp, { name: path.basename(fp) })
+    }
+    archive.finalize()
+  })
+}
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { getToolById } from '@/lib/tools'
 import { storeFile, ensureUploadDir } from '@/lib/file-storage'
 import {
-  mergePDFs, splitPDF, compressPDF, addWatermark,
+  mergePDFs, splitPDF,   compressPDF, type CompressQuality, addWatermark,
   passwordProtect, removePassword, addPageNumbers, imagesToPDF,
   pdfToWordDoc, wordDocToPdf, excelToPdf,
   rotatePDF, deletePagesFromPDF, rearrangePages, extractPages,
@@ -50,10 +68,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         const splitDir = path.join(OUTPUT_DIR, uuidv4())
         await fs.mkdir(splitDir, { recursive: true })
         const splitPaths = await splitPDF(inputPaths[0], splitDir)
-        resultPath = splitPaths[0]
+        if (splitPaths.length === 1) {
+          resultPath = splitPaths[0]
+        } else {
+          const zipPath = path.join(OUTPUT_DIR, `${uuidv4()}-split-pages.zip`)
+          resultPath = await createZip(splitPaths, zipPath)
+        }
         break
       }
-      case 'compress': resultPath = await compressPDF(inputPaths[0], outputPath); break
+      case 'compress': {
+        const quality = (formData.get('quality') as CompressQuality) || 'ebook'
+        resultPath = await compressPDF(inputPaths[0], outputPath, quality); break
+      }
       case 'rotate': {
         const deg = Number(formData.get('degrees')) || 90
         resultPath = await rotatePDF(inputPaths[0], outputPath, deg); break
@@ -98,13 +124,25 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         const imgDir = path.join(OUTPUT_DIR, uuidv4())
         await fs.mkdir(imgDir, { recursive: true })
         const imgPaths = await pdfToImages(inputPaths[0], imgDir, 'jpg')
-        resultPath = imgPaths[0]; break
+        if (imgPaths.length === 1) {
+          resultPath = imgPaths[0]
+        } else {
+          const zipPath = path.join(OUTPUT_DIR, `${uuidv4()}-images.zip`)
+          resultPath = await createZip(imgPaths, zipPath)
+        }
+        break
       }
       case 'pdf-to-png': {
         const imgDir = path.join(OUTPUT_DIR, uuidv4())
         await fs.mkdir(imgDir, { recursive: true })
         const imgPaths = await pdfToImages(inputPaths[0], imgDir, 'png')
-        resultPath = imgPaths[0]; break
+        if (imgPaths.length === 1) {
+          resultPath = imgPaths[0]
+        } else {
+          const zipPath = path.join(OUTPUT_DIR, `${uuidv4()}-images.zip`)
+          resultPath = await createZip(imgPaths, zipPath)
+        }
+        break
       }
       case 'html-to-pdf': resultPath = await htmlToPdf(inputPaths[0], outputPath); break
       case 'text-to-pdf': resultPath = await textToPdf(inputPaths[0], outputPath); break
@@ -176,6 +214,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      '.zip': 'application/zip',
       '.jpg': 'image/jpeg',
       '.jpeg': 'image/jpeg',
       '.png': 'image/png',

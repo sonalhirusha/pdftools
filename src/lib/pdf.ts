@@ -53,12 +53,60 @@ export async function splitPDF(inputPath: string, outputDir: string): Promise<st
   return outputPaths
 }
 
-export async function compressPDF(inputPath: string, outputPath: string): Promise<string> {
-  const bytes = await fs.readFile(inputPath)
-  const pdf = await PDFDocument.load(bytes, { ignoreEncryption: true })
-  const compressedBytes = await pdf.save({ useObjectStreams: true })
-  await fs.writeFile(outputPath, compressedBytes)
-  return outputPath
+export type CompressQuality = 'screen' | 'ebook' | 'printer' | 'prepress'
+
+export async function compressPDF(
+  inputPath: string,
+  outputPath: string,
+  quality: CompressQuality = 'ebook'
+): Promise<string> {
+  try {
+    const result = await compressWithGhostscript(inputPath, outputPath, quality)
+    const original = (await fs.stat(inputPath)).size
+    const compressed = (await fs.stat(result)).size
+    if (compressed > 0 && compressed < original) {
+      return result
+    }
+    throw new Error('Ghostscript did not reduce file size')
+  } catch {
+    const bytes = await fs.readFile(inputPath)
+    const pdf = await PDFDocument.load(bytes, { ignoreEncryption: true })
+    const compressedBytes = await pdf.save({ useObjectStreams: true })
+    await fs.writeFile(outputPath, compressedBytes)
+    return outputPath
+  }
+}
+
+async function compressWithGhostscript(
+  inputPath: string,
+  outputPath: string,
+  quality: CompressQuality
+): Promise<string> {
+  const { execFile } = await import('child_process')
+  const util = await import('util')
+  const execFileAsync = util.promisify(execFile)
+  const settingsMap: Record<CompressQuality, string> = {
+    screen: '/screen',
+    ebook: '/ebook',
+    printer: '/printer',
+    prepress: '/prepress',
+  }
+  try {
+    await execFileAsync('gs', [
+      '-sDEVICE=pdfwrite',
+      '-dCompatibilityLevel=1.4',
+      `-dPDFSETTINGS=${settingsMap[quality]}`,
+      '-dNOPAUSE',
+      '-dBATCH',
+      '-dQUIET',
+      '-dDetectDuplicateImages=true',
+      '-sOutputFile=' + outputPath,
+      inputPath,
+    ])
+    return outputPath
+  } catch {
+    throw new Error('Ghostscript compression failed')
+  }
 }
 
 export async function rotatePDF(inputPath: string, outputPath: string, rotateDegrees: number = 90): Promise<string> {
@@ -109,19 +157,39 @@ export async function extractPages(inputPath: string, outputPath: string, pages:
 }
 
 export async function pdfToImages(inputPath: string, outputDir: string, format: 'png' | 'jpg' = 'png'): Promise<string[]> {
-  const pdf = await loadPDF(inputPath)
-  const outputPaths: string[] = []
-  for (let i = 0; i < pdf.getPageCount(); i++) {
-    const page = pdf.getPage(i)
-    const { width, height } = page.getSize()
+  try {
+    const { execFile } = await import('child_process')
+    const util = await import('util')
+    const execFileAsync = util.promisify(execFile)
+    const device = format === 'png' ? 'png16m' : 'jpeg'
     const ext = format === 'png' ? 'png' : 'jpg'
-    const outputPath = path.join(outputDir, `page-${i + 1}.${ext}`)
-    await sharp({
-      create: { width: Math.round(width), height: Math.round(height), channels: 4, background: { r: 255, g: 255, b: 255, alpha: 1 } },
-    }).toFile(outputPath)
-    outputPaths.push(outputPath)
+    await execFileAsync('gs', [
+      '-dNOPAUSE', '-dBATCH', '-dQUIET',
+      `-sDEVICE=${device}`,
+      '-r150',
+      `-sOutputFile=${path.join(outputDir, `page-%d.${ext}`)}`,
+      inputPath,
+    ])
+    const files = await fs.readdir(outputDir)
+    return files
+      .filter((f) => f.endsWith(`.${ext}`))
+      .sort()
+      .map((f) => path.join(outputDir, f))
+  } catch {
+    const pdf = await loadPDF(inputPath)
+    const outputPaths: string[] = []
+    for (let i = 0; i < pdf.getPageCount(); i++) {
+      const page = pdf.getPage(i)
+      const { width, height } = page.getSize()
+      const ext = format === 'png' ? 'png' : 'jpg'
+      const outputPath = path.join(outputDir, `page-${i + 1}.${ext}`)
+      await sharp({
+        create: { width: Math.round(width), height: Math.round(height), channels: 4, background: { r: 255, g: 255, b: 255, alpha: 1 } },
+      }).toFile(outputPath)
+      outputPaths.push(outputPath)
+    }
+    return outputPaths
   }
-  return outputPaths
 }
 
 export async function addWatermark(inputPath: string, outputPath: string, text: string): Promise<string> {
@@ -245,13 +313,14 @@ export async function imagesToPDF(imagePaths: string[], outputPath: string): Pro
 
 export async function extractPdfText(inputPath: string): Promise<string> {
   try {
-    const pdfBytes = await fs.readFile(inputPath)
-    const pdf = await PDFDocument.load(pdfBytes)
-    const text = pdf.getTitle() || ''
-    const subject = pdf.getSubject() || ''
-    const author = pdf.getAuthor() || ''
-    const meta = [text, subject, author].filter(Boolean).join('\n')
-    return meta || '[Text extraction requires a Pro plan. The document metadata was read successfully.]'
+    const pdfParse = (await import('pdf-parse')).default
+    const dataBuffer = await fs.readFile(inputPath)
+    const data = await pdfParse(dataBuffer)
+    const text = data.text?.trim() || ''
+    if (text) return text
+    const pdf = await PDFDocument.load(dataBuffer)
+    const meta = [pdf.getTitle(), pdf.getSubject(), pdf.getAuthor()].filter(Boolean).join('\n')
+    return meta || '[No text content could be extracted from this PDF]'
   } catch {
     return '[Could not extract text from this PDF]'
   }
