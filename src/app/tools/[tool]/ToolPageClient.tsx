@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, type ReactNode } from 'react'
-import { useDropzone } from 'react-dropzone'
+import { useDropzone, type FileRejection } from 'react-dropzone'
 import { Button } from '@/components/ui/Button'
 import { FileTextIcon, Upload, Download, X, CheckCircle2, AlertCircle } from 'lucide-react'
 import type { Tool } from '@/types'
@@ -19,7 +19,7 @@ export function ToolPageClient({ tool }: ToolPageClientProps) {
   const [error, setError] = useState('')
   const [progress, setProgress] = useState(0)
 
-  const onDrop = useCallback((acceptedFiles: File[], rejected: { file: File; errors: { message: string }[] }[]) => {
+  const onDrop = useCallback((acceptedFiles: File[], rejected: FileRejection[]) => {
     setFiles((prev) => [...prev, ...acceptedFiles].slice(0, 10))
     setCompleted(false)
     setError('')

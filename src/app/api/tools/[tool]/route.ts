@@ -3,14 +3,14 @@ import path from 'path'
 import fs from 'fs/promises'
 import { createWriteStream } from 'fs'
 import { v4 as uuidv4 } from 'uuid'
-import archiver from 'archiver'
+import { ZipArchive } from 'archiver'
 
 export const maxDuration = 120
 
 async function createZip(filePaths: string[], outputZip: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const output = createWriteStream(outputZip)
-    const archive = archiver('zip', { zlib: { level: 9 } })
+    const archive = new ZipArchive({ zlib: { level: 9 } })
     output.on('close', () => resolve(outputZip))
     archive.on('error', reject)
     archive.pipe(output)

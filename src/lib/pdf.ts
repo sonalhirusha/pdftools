@@ -313,16 +313,24 @@ export async function imagesToPDF(imagePaths: string[], outputPath: string): Pro
 
 export async function extractPdfText(inputPath: string): Promise<string> {
   try {
-    const pdfParse = (await import('pdf-parse')).default
+    const { PDFParse } = await import('pdf-parse')
     const dataBuffer = await fs.readFile(inputPath)
-    const data = await pdfParse(dataBuffer)
-    const text = data.text?.trim() || ''
+    const parser = new PDFParse({ data: new Uint8Array(dataBuffer) })
+    const result = await parser.getText()
+    await parser.destroy()
+    const text = result.text?.trim() || ''
     if (text) return text
     const pdf = await PDFDocument.load(dataBuffer)
     const meta = [pdf.getTitle(), pdf.getSubject(), pdf.getAuthor()].filter(Boolean).join('\n')
     return meta || '[No text content could be extracted from this PDF]'
   } catch {
-    return '[Could not extract text from this PDF]'
+    try {
+      const pdf = await loadPDF(inputPath)
+      const meta = [pdf.getTitle(), pdf.getSubject(), pdf.getAuthor()].filter(Boolean).join('\n')
+      return meta || '[Could not extract text from this PDF]'
+    } catch {
+      return '[Could not extract text from this PDF]'
+    }
   }
 }
 
