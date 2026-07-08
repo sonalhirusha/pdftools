@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { ArrowRight, FileTextIcon, ShieldIcon, ZapIcon, GlobeIcon, ClockIcon, UsersIcon, StarIcon, CheckCircle2Icon, MergeIcon, SplitIcon, FileDownIcon, FileImageIcon, LockIcon, PenIcon, SparklesIcon } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { tools, getPopularTools } from '@/lib/tools'
+import { AdTopBanner, AdBottomBanner } from '@/components/ads/AdPlacement'
 
 const stats = [
   { value: '50K+', label: 'Files Processed Daily' },
@@ -36,6 +37,7 @@ const popularTools = getPopularTools()
 export default function HomePage() {
   return (
     <>
+      <AdTopBanner />
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary-50 via-white to-accent-50 dark:from-gray-950 dark:via-gray-950 dark:to-primary-950" />
@@ -206,6 +208,7 @@ export default function HomePage() {
           </form>
         </div>
       </section>
+      <AdBottomBanner />
     </>
   )
 }

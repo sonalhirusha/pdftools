@@ -5,6 +5,7 @@ import { useDropzone } from 'react-dropzone'
 import { Button } from '@/components/ui/Button'
 import { FileTextIcon, Upload, Download, X, CheckCircle2, AlertCircle } from 'lucide-react'
 import type { Tool } from '@/types'
+import { AdTopBanner, AdInContent, AdStickyFooter } from '@/components/ads/AdPlacement'
 
 interface ToolPageClientProps {
   tool: Tool
@@ -89,6 +90,7 @@ export function ToolPageClient({ tool }: ToolPageClientProps) {
 
   return (
     <div className="container-page max-w-3xl">
+      <AdTopBanner />
       <div className="text-center mb-8">
         <h1 className="section-title">{tool.name}</h1>
         <p className="section-subtitle mx-auto">{tool.description}</p>
@@ -142,6 +144,8 @@ export function ToolPageClient({ tool }: ToolPageClientProps) {
           </div>
         )}
 
+        <AdInContent />
+
         {/* Actions */}
         <div className="mt-6 flex gap-3 justify-center">
           {!completed && files.length > 0 && (
@@ -165,6 +169,7 @@ export function ToolPageClient({ tool }: ToolPageClientProps) {
           </div>
         )}
       </div>
+      <AdStickyFooter />
     </div>
   )
 }

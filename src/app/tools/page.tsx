@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { FileTextIcon, ArrowRight } from 'lucide-react'
 import { tools } from '@/lib/tools'
 import type { Metadata } from 'next'
+import { AdTopBanner, AdBottomBanner } from '@/components/ads/AdPlacement'
 
 export const metadata: Metadata = {
   title: 'All PDF Tools',
@@ -20,6 +21,7 @@ export default function ToolsPage() {
 
   return (
     <div className="container-page">
+      <AdTopBanner />
       <div className="text-center mb-12">
         <h1 className="section-title">All PDF Tools</h1>
         <p className="section-subtitle mx-auto">Choose from 30+ free online PDF tools</p>
@@ -46,6 +48,7 @@ export default function ToolsPage() {
           </div>
         </section>
       ))}
+      <AdBottomBanner />
     </div>
   )
 }
