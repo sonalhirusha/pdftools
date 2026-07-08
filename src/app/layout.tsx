@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     images: ['/images/og-image.png'],
   },
   robots: { index: true, follow: true },
-  icons: { icon: '/icons/favicon.ico', shortcut: '/icons/favicon-16x16.png', apple: '/icons/apple-touch-icon.png' },
+  icons: { icon: '/icons/favicon.png', shortcut: '/icons/favicon-16x16.png', apple: '/icons/apple-touch-icon.png' },
   manifest: '/manifest.json',
   other: { 'google-site-verification': 'wZb24k9TWrlGFtDUq0DQUSJ1m7h3IFRgGjx02Su_IRs' },
 }
