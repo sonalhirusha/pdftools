@@ -3,6 +3,16 @@ import { ArrowRight, FileTextIcon, ShieldIcon, ZapIcon, GlobeIcon, ClockIcon, Us
 import { Button } from '@/components/ui/Button'
 import { tools, getPopularTools } from '@/lib/tools'
 import { AdTopBanner, AdBottomBanner } from '@/components/ads/AdPlacement'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'PDFTools - Free Online PDF Tools',
+  description: '30+ free online PDF tools to merge, split, compress, convert and edit PDF files. No installation, no sign-up, 100% free. Secure, fast, and private.',
+  openGraph: {
+    title: 'PDFTools - Free Online PDF Tools',
+    description: '30+ free online PDF tools to merge, split, compress, convert and edit PDF files. No installation required.',
+  },
+}
 
 const stats = [
   { value: '50K+', label: 'Files Processed Daily' },
@@ -37,6 +47,30 @@ const popularTools = getPopularTools()
 export default function HomePage() {
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{
+        __html: JSON.stringify([{
+          '@context': 'https://schema.org',
+          '@type': 'WebSite',
+          name: 'PDFTools',
+          url: process.env.NEXT_PUBLIC_APP_URL || 'https://pdftools.com',
+          description: 'Free online PDF tools to merge, split, compress, convert and edit PDF files.',
+          potentialAction: {
+            '@type': 'SearchAction',
+            target: { '@type': 'EntryPoint', urlTemplate: `${process.env.NEXT_PUBLIC_APP_URL || 'https://pdftools.com'}/tools?q={search_term_string}` },
+            'query-input': 'required name=search_term_string',
+          },
+        }, {
+          '@context': 'https://schema.org',
+          '@type': 'FAQPage',
+          mainEntity: [
+            { '@type': 'Question', name: 'Is PDFTools really free?', acceptedAnswer: { '@type': 'Answer', text: 'Yes! All basic PDF tools are completely free with no hidden charges.' } },
+            { '@type': 'Question', name: 'Are my files secure?', acceptedAnswer: { '@type': 'Answer', text: 'Absolutely. Files are encrypted in transit and automatically deleted after 24 hours.' } },
+            { '@type': 'Question', name: 'Do I need to create an account?', acceptedAnswer: { '@type': 'Answer', text: 'No account needed for basic tools. An account gives you access to history and larger file sizes.' } },
+            { '@type': 'Question', name: 'What is the maximum file size?', acceptedAnswer: { '@type': 'Answer', text: 'You can upload files up to 500MB. Premium users get higher limits.' } },
+            { '@type': 'Question', name: 'Which file formats are supported?', acceptedAnswer: { '@type': 'Answer', text: 'We support PDF, DOCX, DOC, PPTX, PPT, XLSX, XLS, JPG, PNG, and WEBP.' } },
+          ],
+        }]),
+      }} />
       <AdTopBanner />
       {/* Hero */}
       <section className="relative overflow-hidden">
